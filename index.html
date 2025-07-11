@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hustler's Rise - Browser RPG</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
+    button { margin: 5px; padding: 10px; background: #222; color: #0f0; border: 1px solid #0f0; cursor: pointer;}
+    #log { white-space: pre-line; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<h1>💰 Hustler's Rise</h1>
+<div id="stats"></div>
+
+<div id="actions">
+  <button onclick="makeDeal()">Make a Deal</button>
+  <button onclick="buySupplies()">Black Market</button>
+  <button onclick="gangWar()">Gang War</button>
+  <button onclick="showStats()">Show Stats</button>
+  <button onclick="saveGame()">Save</button>
+  <button onclick="loadGame()">Load</button>
+  <button onclick="resetGame()">Restart</button>
+</div>
+
+<div id="log"></div>
+
+<script>
+let player = {
+  name: "Hustler",
+  hp: 100,
+  xp: 0,
+  cash: 500,
+  drugs: 3,
+  gun: 1
+};
+
+function updateStats() {
+  const level = getLevel();
+  document.getElementById('stats').innerText =
+    `🧍 ${player.name} | 💉 HP: ${player.hp} | 📈 XP: ${player.xp} (${level}) | 💵 $${player.cash} | 💊 Drugs: ${player.drugs} | 🔫 Guns: ${player.gun}`;
+}
+
+function log(msg) {
+  const logDiv = document.getElementById('log');
+  logDiv.innerText = msg + '\n\n' + logDiv.innerText;
+}
+
+function getLevel() {
+  if (player.xp >= 300) return "👑 Kingpin";
+  if (player.xp >= 150) return "💼 Boss";
+  if (player.xp >= 50) return "📦 Dealer";
+  return "🧍 Street Hustler";
+}
+
+function makeDeal() {
+  if (player.drugs <= 0) {
+    log("You're out of product. Visit the black market.");
+    return;
+  }
+
+  let roll = Math.floor(Math.random() * 10);
+  if (roll <= 5) {
+    let profit = Math.floor(Math.random() * 200) + 100;
+    player.cash += profit;
+    player.xp += 10;
+    player.drugs -= 1;
+    log(`✅ Deal success! +$${profit}, +10 XP`);
+  } else if (roll <= 7) {
+    let loss = Math.floor(Math.random() * 150) + 50;
+    player.cash = Math.max(0, player.cash - loss);
+    player.xp -= 5;
+    player.drugs -= 1;
+    log(`❌ Deal failed. -$${loss}, -5 XP`);
+  } else if (roll === 8) {
+    cleanCop();
+  } else {
+    dirtyCop();
+  }
+
+  triggerEvent();
+  updateStats();
+}
+
+function cleanCop() {
+  let fine = Math.floor(Math.random() * 200) + 100;
+  player.hp -= 10;
+  player.cash = Math.max(0, player.cash - fine);
+  player.xp -= 10;
+  log(`🚔 Clean cops busted you! -$${fine}, -10 XP, -10 HP`);
+}
+
+function dirtyCop() {
+  let bribe = 150;
+  if (player.cash >= bribe) {
+    player.cash -= bribe;
+    log("🕶️ Dirty cop took your bribe. You walked.");
+  } else {
+    player.hp -= 20;
+    player.xp -= 10;
+    log("💥 Couldn't pay. Cop beat you down. -20 HP, -10 XP");
+  }
+}
+
+function gangWar() {
+  if (player.gun > 0) {
+    let win = Math.random() < 0.5;
+    if (win) {
+      let reward = 300;
+      player.cash += reward;
+      player.xp += 20;
+      log(`🔥 Won gang fight! +$${reward}, +20 XP`);
+    } else {
+      player.hp -= 30;
+      player.xp -= 10;
+      log(`🩸 You got hit. -30 HP, -10 XP`);
+    }
+  } else {
+    player.hp -= 40;
+    player.xp -= 15;
+    log(`💀 No gun? Big mistake. -40 HP, -15 XP`);
+  }
+  triggerEvent();
+  updateStats();
+}
+
+function buySupplies() {
+  let choice = prompt("Buy: 1) Drugs ($200)  2) Gun ($500)");
+
+  if (choice === "1" && player.cash >= 200) {
+    player.drugs += 1;
+    player.cash -= 200;
+    log("💊 Bought 1 unit of drugs.");
+  } else if (choice === "2" && player.cash >= 500) {
+    player.gun += 1;
+    player.cash -= 500;
+    log("🔫 Bought a gun.");
+  } else {
+    log("Not enough cash.");
+  }
+  triggerEvent();
+  updateStats();
+}
+
+function showStats() {
+  alert(`${player.name}\nHP: ${player.hp}\nXP: ${player.xp}\nCash: $${player.cash}\nDrugs: ${player.drugs}\nGuns: ${player.gun}\nLevel: ${getLevel()}`);
+}
+
+function saveGame() {
+  localStorage.setItem("hustlerSave", JSON.stringify(player));
+  log("💾 Game saved.");
+}
+
+function loadGame() {
+  const save = localStorage.getItem("hustlerSave");
+  if (save) {
+    player = JSON.parse(save);
+    log("🔁 Game loaded.");
+    updateStats();
+  } else {
+    log("❌ No save found.");
+  }
+}
+
+function resetGame() {
+  if (confirm("Reset game?")) {
+    player = {
+      name: "Hustler",
+      hp: 100,
+      xp: 0,
+      cash: 500,
+      drugs: 3,
+      gun: 1
+    };
+    log("🧼 Game reset.");
+    updateStats();
+  }
+}
+
+function triggerEvent() {
+  if (Math.random() < 0.4) {
+    const events = [eventJunkie, eventSnitch, eventRival];
+    events[Math.floor(Math.random() * events.length)]();
+  }
+}
+
+// Street events
+
+function eventJunkie() {
+  let choice = prompt("🤡 A junkie offers a watch for $100.\n1) Buy\n2) Threaten & Take\n3) Walk");
+  if (choice === "1" && player.cash >= 100) {
+    player.cash -= 100;
+    player.xp += 5;
+    log("🎭 Fake watch. -$100, +5 XP");
+  } else if (choice === "2") {
+    if (Math.random() < 0.5) {
+      player.cash += 200;
+      player.xp += 10;
+      log("📦 You flipped it. +$200, +10 XP");
+    } else {
+      player.hp -= 15;
+      player.xp -= 5;
+      log("🗡️ He cut you! -15 HP, -5 XP");
+    }
+  } else {
+    log("🚶 You walked away.");
+  }
+}
+
+function eventSnitch() {
+  let choice = prompt("🧑‍💼 A crew member may be snitching. 1) Interrogate  2) Ignore");
+  if (choice === "1") {
+    let r = Math.random();
+    if (r < 0.3) {
+      player.hp -= 10;
+      log("😬 False alarm. Lost rep. -10 HP");
+    } else if (r < 0.8) {
+      player.xp += 15;
+      log("🔫 Snitch confirmed. +15 XP");
+    } else {
+      player.xp -= 30;
+      log("🚔 He turned you in. -30 XP");
+    }
+  } else {
+    if (Math.random() < 0.3) {
+      player.cash -= 100;
+      log("💸 He skimmed $100 from your stash.");
+    } else {
+      log("😐 Nothing happened... yet.");
+    }
+  }
+}
+
+function eventRival() {
+  let choice = prompt("🚗 Rival tagging turf. 1) Chase  2) Call crew  3) Ignore");
+  if (choice === "1") {
+    if (Math.random() < 0.6) {
+      player.xp += 10;
+      log("🏃 You ran him off. +10 XP");
+    } else {
+      player.hp -= 10;
+      log("🗡️ He pulled a blade. -10 HP");
+    }
+  } else if (choice === "2") {
+    player.hp -= 5;
+    player.xp += 15;
+    log("👥 Crew handled it. +15 XP, -5 HP");
+  } else {
+    player.xp -= 5;
+    log("👀 You did nothing. -5 XP");
+  }
+}
+
+updateStats();
+log("🎮 Game started. Build your empire.");
+</script>
+
+</body>
+</html>
